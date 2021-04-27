@@ -22,6 +22,7 @@ enum Color {
     Rosa,
     Rot,
     Gruen,
+    None,
 }
 
 impl Display for Color {
@@ -33,6 +34,7 @@ impl Display for Color {
             Color::Rosa => "ROSA".on_magenta(),
             Color::Rot => "ROT".on_red(),
             Color::Gruen => "GRUEN".on_green(),
+            Color::None => "Noch nich gewürfelt".black().on_white(),
         };
 
         write!(f, "{}", name)
@@ -170,6 +172,7 @@ struct Game {
     caught_cols: Fische,
     boot_pos: u8,
     last_col: Color,
+    pub round: u8,
 }
 
 impl Game {
@@ -181,7 +184,7 @@ impl Game {
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
-                Fische::default(),
+                Fische([None, None, None, None]),
                 Fische([
                     Some(Fisch(Color::Blau)),
                     Some(Fisch(Color::Orange)),
@@ -194,17 +197,24 @@ impl Game {
                     Some(Fisch(Color::Gelb)),
                     Some(Fisch(Color::Rosa)),
                 ]),
-                Fische::default(),
+                Fische([None, None, None, None]),
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
             ],
-            fisch_cols: Fische::fill(),
-            free_cols: Fische::default(),
-            caught_cols: Fische::default(),
+            fisch_cols: Fische([
+                Some(Fisch(Color::Blau)),
+                Some(Fisch(Color::Orange)),
+                Some(Fisch(Color::Gelb)),
+                Some(Fisch(Color::Rosa)),
+            ]),
+
+            free_cols: Fische([None, None, None, None]),
+            caught_cols: Fische([None, None, None, None]),
             boot_pos: 0,
-            last_col: Color::Blau,
+            last_col: Color::None,
+            round: 0,
         }
     }
 
@@ -231,6 +241,7 @@ impl Game {
 
             self.mv(col);
             self.last_col = col;
+            self.round += 1;
 
             Winner::Undecided
         }
@@ -329,7 +340,7 @@ impl Display for Game {
             .collect::<Vec<&str>>()
             .join("");
 
-        write!(f, "{}\n", self.last_col)?;
+        write!(f, "Round {}: {}\n", self.round, self.last_col)?;
         write!(f, "{}\n", boot)?;
         write!(f, "{}\n", blau)?;
         write!(f, "{}\n", orange)?;
@@ -346,48 +357,57 @@ fn main() {
 }
 
 fn benchmark() {
-    let runs = 29718;
+    let runs = 25000;
     let winners = (0..=runs)
         .step_by(1)
         .map(|_| {
             let mut g = Game::new();
             while g.tick() == Winner::Undecided {}
-            g.tick()
+            (g.tick(), g.round)
         })
-        .collect::<Vec<Winner>>();
+        .collect::<Vec<(Winner, u8)>>();
 
-    let b_win = winners.iter().filter(|w| w == &&Winner::Boot).count();
-    let f_win = winners.iter().filter(|w| w == &&Winner::Fisch).count();
-    let tie = winners
-        .iter()
-        .filter(|w| w == &&Winner::Unentschieden)
-        .count();
+    let b_wins = winners.iter().filter(|w| w.0 == Winner::Boot);
+    let f_wins = winners.iter().filter(|w| w.0 == Winner::Fisch);
+    let ties = winners.iter().filter(|w| w.0 == Winner::Unentschieden);
+
+    let b_win = b_wins.clone().count();
+    let b_rounds: usize = b_wins.map(|w| w.1 as usize).sum::<usize>().div(b_win);
+
+    let f_win = f_wins.clone().count();
+    let f_rounds: usize = f_wins.map(|w| w.1 as usize).sum::<usize>().div(f_win);
+
+    let tie = ties.clone().count();
+    let t_rounds: usize = ties.map(|w| w.1 as usize).sum::<usize>().div(tie);
 
     println!(
-        "Boot: {} ({:.2}%)",
+        "Boot: {} ({:.2}%, Round avg.: {:.2})",
         b_win,
-        (b_win as f32).div(runs as f32).mul(100f32)
+        (b_win as f32).div(runs as f32).mul(100f32),
+        b_rounds
     );
     println!(
-        "Fisch: {} ({:.2}%)",
+        "Fisch: {} ({:.2}%, Round avg.: {:.2})",
         f_win,
-        (f_win as f32).div(runs as f32).mul(100f32)
+        (f_win as f32).div(runs as f32).mul(100f32),
+        f_rounds
     );
     println!(
-        "Unentschieden: {} ({:.2}%)",
+        "Unentschieden: {} ({:.2}%, Round avg.: {:.2})",
         tie,
-        (tie as f32).div(runs as f32).mul(100f32)
+        (tie as f32).div(runs as f32).mul(100f32),
+        t_rounds
     );
 }
 
-// fn manual_game() {
-//     let mut g = Game::new();
-//     println!("{}", g);
+fn manual_game() {
+    let mut g = Game::new();
+    println!("{}", g);
 
-//     while g.tick() == Winner::Undecided {
-//         println!("{}", g);
-//         std::thread::sleep(std::time::Duration::from_millis(250))
-//     }
+    while g.tick() == Winner::Undecided {
+        println!("{}", g);
+        std::thread::sleep(std::time::Duration::from_millis(250))
+    }
 
-//     println!("Winner: {:?}", g.tick());
-// }
+    println!("Winner: {:?}", g.tick());
+}
