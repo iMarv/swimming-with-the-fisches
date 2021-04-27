@@ -61,54 +61,57 @@ fn d6() -> Color {
 #[derive(Debug, Copy, Clone)]
 struct Fisch(Color);
 
-struct Fische([Option<Fisch>; 4]);
+struct Fische {
+    all: [Option<Fisch>; 4],
+}
 
 impl Default for Fische {
     fn default() -> Self {
-        Fische([None, None, None, None])
+        Fische {
+            all: [None, None, None, None],
+        }
     }
 }
 
 impl Fische {
-    fn fill() -> Self {
-        Fische([
-            Some(Fisch(Color::Blau)),
-            Some(Fisch(Color::Orange)),
-            Some(Fisch(Color::Gelb)),
-            Some(Fisch(Color::Rosa)),
-        ])
+    fn fill(cols: Vec<Color>) -> Self {
+        let mut fisches = Fische::default();
+
+        cols.iter().for_each(|col| fisches.add(*col));
+
+        fisches
     }
 
     fn get_blau(&self) -> &Option<Fisch> {
-        &self.0[0]
+        &self.all[0]
     }
 
     fn get_mut_blau(&mut self) -> &mut Option<Fisch> {
-        &mut self.0[0]
+        &mut self.all[0]
     }
 
     fn get_orange(&self) -> &Option<Fisch> {
-        &self.0[1]
+        &self.all[1]
     }
 
     fn get_mut_orange(&mut self) -> &mut Option<Fisch> {
-        &mut self.0[1]
+        &mut self.all[1]
     }
 
     fn get_gelb(&self) -> &Option<Fisch> {
-        &self.0[2]
+        &self.all[2]
     }
 
     fn get_mut_gelb(&mut self) -> &mut Option<Fisch> {
-        &mut self.0[2]
+        &mut self.all[2]
     }
 
     fn get_rosa(&self) -> &Option<Fisch> {
-        &self.0[3]
+        &self.all[3]
     }
 
     fn get_mut_rosa(&mut self) -> &mut Option<Fisch> {
-        &mut self.0[3]
+        &mut self.all[3]
     }
 
     fn get_mut_col(&mut self, col: &Color) -> &mut Option<Fisch> {
@@ -132,8 +135,12 @@ impl Fische {
         .is_some()
     }
 
+    pub fn iter(&self) -> core::slice::Iter<Option<Fisch>> {
+        self.all.iter()
+    }
+
     pub fn get_first(&self) -> &Option<Fisch> {
-        self.0.iter().find(|f| f.is_some()).unwrap_or(&None)
+        self.all.iter().find(|f| f.is_some()).unwrap_or(&None)
     }
 
     pub fn extract_first(&mut self) -> Option<Fisch> {
@@ -165,8 +172,8 @@ struct Game {
     pub round: u8,
 }
 
-impl Game {
-    fn new() -> Self {
+impl Default for Game {
+    fn default() -> Self {
         Game {
             fluss: [
                 Fische::default(),
@@ -174,34 +181,32 @@ impl Game {
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
-                Fische([None, None, None, None]),
-                Fische([
-                    Some(Fisch(Color::Blau)),
-                    Some(Fisch(Color::Orange)),
-                    None,
-                    None,
-                ]),
-                Fische([
-                    None,
-                    None,
-                    Some(Fisch(Color::Gelb)),
-                    Some(Fisch(Color::Rosa)),
-                ]),
-                Fische([None, None, None, None]),
+                Fische::default(),
+                Fische::fill(vec![Color::Blau, Color::Orange]),
+                Fische::fill(vec![Color::Gelb, Color::Rosa]),
+                Fische::default(),
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
             ],
-            fisch_cols: Fische([
-                Some(Fisch(Color::Blau)),
-                Some(Fisch(Color::Orange)),
-                Some(Fisch(Color::Gelb)),
-                Some(Fisch(Color::Rosa)),
-            ]),
+            fisch_cols: Fische::fill(vec![Color::Blau, Color::Orange, Color::Gelb, Color::Rosa]),
+            free_cols: Fische::default(),
+            caught_cols: Fische::default(),
+            boot_pos: 0,
+            last_col: Color::None,
+            round: 0,
+        }
+    }
+}
 
-            free_cols: Fische([None, None, None, None]),
-            caught_cols: Fische([None, None, None, None]),
+impl Game {
+    fn new(fluss: [Fische; 13]) -> Self {
+        Game {
+            fluss,
+            fisch_cols: Fische::fill(vec![Color::Blau, Color::Orange, Color::Gelb, Color::Rosa]),
+            free_cols: Fische::default(),
+            caught_cols: Fische::default(),
             boot_pos: 0,
             last_col: Color::None,
             round: 0,
@@ -223,8 +228,8 @@ impl Game {
     }
 
     fn check_for_winner(&self) -> Option<Winner> {
-        let free = self.free_cols.0.iter().filter(|f| f.is_some()).count();
-        let caught = self.caught_cols.0.iter().filter(|f| f.is_some()).count();
+        let free = self.free_cols.iter().filter(|f| f.is_some()).count();
+        let caught = self.caught_cols.iter().filter(|f| f.is_some()).count();
 
         if self.fluss.len() - 1 == self.boot_pos.into() {
             if free == caught {
@@ -352,16 +357,16 @@ impl Display for Game {
 }
 
 fn main() {
-    manual_game();
-    // benchmark();
+    // manual_game();
+    benchmark();
 }
 
 fn benchmark() {
-    let runs = 25000;
+    let runs = 1000;
     let winners = (0..=runs)
         .step_by(1)
         .map(|_| {
-            let mut g = Game::new();
+            let mut g = Game::default();
             while g.tick() == Winner::Undecided {}
             (g.tick(), g.round)
         })
@@ -401,7 +406,7 @@ fn benchmark() {
 }
 
 fn manual_game() {
-    let mut g = Game::new();
+    let mut g = Game::default();
     println!("{}", g);
 
     while g.tick() == Winner::Undecided {
