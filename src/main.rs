@@ -1,6 +1,7 @@
 use std::{
     fmt::Display,
     ops::{Div, Mul},
+    usize,
 };
 
 use colored::Colorize;
@@ -358,10 +359,44 @@ impl Display for Game {
 
 fn main() {
     // manual_game();
-    benchmark();
+    println!("{}", benchmark());
 }
 
-fn benchmark() {
+struct BenchResult {
+    b_win: usize,
+    b_winp: f32,
+    b_rounds: usize,
+
+    f_win: usize,
+    f_winp: f32,
+    f_rounds: usize,
+
+    tie: usize,
+    tiep: f32,
+    t_rounds: usize,
+}
+
+impl Display for BenchResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Boot: {} ({:.2}%, Round avg.: {:.2})\n",
+            self.b_win, self.b_winp, self.b_rounds
+        )?;
+        write!(
+            f,
+            "Fisch: {} ({:.2}%, Round avg.: {:.2})\n",
+            self.f_win, self.f_winp, self.f_rounds
+        )?;
+        write!(
+            f,
+            "Unentschieden: {} ({:.2}%, Round avg.: {:.2})\n",
+            self.tie, self.tiep, self.t_rounds
+        )
+    }
+}
+
+fn benchmark() -> BenchResult {
     let runs = 1000;
     let winners = (0..=runs)
         .step_by(1)
@@ -378,31 +413,27 @@ fn benchmark() {
 
     let b_win = b_wins.clone().count();
     let b_rounds: usize = b_wins.map(|w| w.1 as usize).sum::<usize>().div(b_win);
+    let b_winp = (b_win as f32).div(runs as f32).mul(100f32);
 
     let f_win = f_wins.clone().count();
     let f_rounds: usize = f_wins.map(|w| w.1 as usize).sum::<usize>().div(f_win);
+    let f_winp = (f_win as f32).div(runs as f32).mul(100f32);
 
     let tie = ties.clone().count();
     let t_rounds: usize = ties.map(|w| w.1 as usize).sum::<usize>().div(tie);
+    let tiep = (tie as f32).div(runs as f32).mul(100f32);
 
-    println!(
-        "Boot: {} ({:.2}%, Round avg.: {:.2})",
+    BenchResult {
         b_win,
-        (b_win as f32).div(runs as f32).mul(100f32),
-        b_rounds
-    );
-    println!(
-        "Fisch: {} ({:.2}%, Round avg.: {:.2})",
+        b_rounds,
+        b_winp,
         f_win,
-        (f_win as f32).div(runs as f32).mul(100f32),
-        f_rounds
-    );
-    println!(
-        "Unentschieden: {} ({:.2}%, Round avg.: {:.2})",
+        f_rounds,
+        f_winp,
         tie,
-        (tie as f32).div(runs as f32).mul(100f32),
-        t_rounds
-    );
+        t_rounds,
+        tiep,
+    }
 }
 
 fn manual_game() {
