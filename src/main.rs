@@ -62,6 +62,7 @@ fn d6() -> Color {
 #[derive(Debug, Copy, Clone)]
 struct Fisch(Color);
 
+#[derive(Debug, Copy, Clone)]
 struct Fische {
     all: [Option<Fisch>; 4],
 }
@@ -183,8 +184,8 @@ impl Default for Game {
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
-                Fische::fill(vec![Color::Blau, Color::Orange]),
-                Fische::fill(vec![Color::Gelb, Color::Rosa]),
+                Fische::fill(vec![Color::Blau, Color::Gelb, Color::Orange]),
+                Fische::fill(vec![Color::Rosa]),
                 Fische::default(),
                 Fische::default(),
                 Fische::default(),
@@ -359,10 +360,72 @@ impl Display for Game {
 
 fn main() {
     // manual_game();
-    println!("{}", benchmark());
+
+    let mut runs: Vec<[Fische; 13]> = vec![];
+
+    for blau in 1..12 {
+        for gelb in 1..12 {
+            for rosa in 1..12 {
+                for orange in 1..12 {
+                    let mut fisches = [Fische::default(); 13];
+
+                    fisches[blau].add(Color::Blau);
+                    fisches[gelb].add(Color::Gelb);
+                    fisches[rosa].add(Color::Rosa);
+                    fisches[orange].add(Color::Orange);
+
+                    runs.push(fisches);
+                }
+            }
+        }
+    }
+
+    runs.sort_by(|a, b| {
+        let a_str = fisch_pattern(a);
+        let b_str = fisch_pattern(b);
+
+        a_str.cmp(&b_str)
+    });
+
+    runs.dedup_by(|a, b| {
+        let a_str = fisch_pattern(a);
+        let b_str = fisch_pattern(b);
+
+        a_str.eq_ignore_ascii_case(&b_str)
+    });
+
+    let mut results = runs
+        .iter()
+        .map(|fluss| benchmark(*fluss))
+        .collect::<Vec<BenchResult>>();
+
+    results.sort_by(|a, b| {
+        let a = a.b_f_delta();
+        let b = b.b_f_delta();
+
+        a.partial_cmp(&b).unwrap()
+    });
+
+    let results = results
+        .iter()
+        .map(|b| format!("{}\n", b))
+        .collect::<String>();
+
+    println!("{}", results);
+}
+
+fn fisch_pattern(fische: &[Fische; 13]) -> String {
+    fische
+        .iter()
+        .map(|fl| fl.iter().filter(|fi| fi.is_some()).count())
+        .map(|c| c.to_string())
+        .collect::<Vec<String>>()
+        .join("")
 }
 
 struct BenchResult {
+    fluss: [Fische; 13],
+
     b_win: usize,
     b_winp: f32,
     b_rounds: usize,
@@ -376,32 +439,42 @@ struct BenchResult {
     t_rounds: usize,
 }
 
+impl BenchResult {
+    pub fn b_f_delta(&self) -> f32 {
+        (&self.b_winp - &self.f_winp).abs()
+    }
+}
+
 impl Display for BenchResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} | ", fisch_pattern(&self.fluss))?;
         write!(
             f,
-            "Boot: {} ({:.2}%, Round avg.: {:.2})\n",
+            "B: {:5} ({:6.2}%, R: {:2}) | ",
             self.b_win, self.b_winp, self.b_rounds
         )?;
         write!(
             f,
-            "Fisch: {} ({:.2}%, Round avg.: {:.2})\n",
+            "F: {:5} ({:6.2}%, R: {:2}) | ",
             self.f_win, self.f_winp, self.f_rounds
         )?;
         write!(
             f,
-            "Unentschieden: {} ({:.2}%, Round avg.: {:.2})\n",
+            "T: {:5} ({:6.2}%, R: {:2})",
             self.tie, self.tiep, self.t_rounds
         )
     }
 }
 
-fn benchmark() -> BenchResult {
-    let runs = 1000;
-    let winners = (0..=runs)
+fn benchmark(fluss: [Fische; 13]) -> BenchResult {
+    let runs = 100_000;
+    let winners = (0..runs)
         .step_by(1)
         .map(|_| {
-            let mut g = Game::default();
+            let mut fl = [Fische::default(); 13];
+            fl.copy_from_slice(&fluss);
+
+            let mut g = Game::new(fl);
             while g.tick() == Winner::Undecided {}
             (g.tick(), g.round)
         })
@@ -412,18 +485,25 @@ fn benchmark() -> BenchResult {
     let ties = winners.iter().filter(|w| w.0 == Winner::Unentschieden);
 
     let b_win = b_wins.clone().count();
-    let b_rounds: usize = b_wins.map(|w| w.1 as usize).sum::<usize>().div(b_win);
+    let b_rounds: usize = b_wins
+        .map(|w| w.1 as usize)
+        .sum::<usize>()
+        .div(b_win.max(1));
     let b_winp = (b_win as f32).div(runs as f32).mul(100f32);
 
     let f_win = f_wins.clone().count();
-    let f_rounds: usize = f_wins.map(|w| w.1 as usize).sum::<usize>().div(f_win);
+    let f_rounds: usize = f_wins
+        .map(|w| w.1 as usize)
+        .sum::<usize>()
+        .div(f_win.max(1));
     let f_winp = (f_win as f32).div(runs as f32).mul(100f32);
 
     let tie = ties.clone().count();
-    let t_rounds: usize = ties.map(|w| w.1 as usize).sum::<usize>().div(tie);
+    let t_rounds: usize = ties.map(|w| w.1 as usize).sum::<usize>().div(tie.max(1));
     let tiep = (tie as f32).div(runs as f32).mul(100f32);
 
     BenchResult {
+        fluss,
         b_win,
         b_rounds,
         b_winp,
