@@ -133,17 +133,7 @@ impl Fische {
     }
 
     pub fn get_first(&self) -> &Option<Fisch> {
-        if self.has(&Color::Blau) {
-            self.get_blau()
-        } else if self.has(&Color::Orange) {
-            self.get_orange()
-        } else if self.has(&Color::Gelb) {
-            self.get_gelb()
-        } else if self.has(&Color::Rosa) {
-            self.get_rosa()
-        } else {
-            &None
-        }
+        self.0.iter().find(|f| f.is_some()).unwrap_or(&None)
     }
 
     pub fn extract_first(&mut self) -> Option<Fisch> {
@@ -219,23 +209,8 @@ impl Game {
     }
 
     pub fn tick(&mut self) -> Winner {
-        let free = self.free_cols.0.iter().filter(|f| f.is_some()).count();
-        let caught = self.caught_cols.0.iter().filter(|f| f.is_some()).count();
-
-        if self.fluss.len() - 1 == self.boot_pos.into() {
-            if free == caught {
-                Winner::Unentschieden
-            } else if free > caught {
-                Winner::Fisch
-            } else {
-                Winner::Boot
-            }
-        } else if free >= 3 {
-            Winner::Fisch
-        } else if caught >= 3 {
-            Winner::Boot
-        } else if free == 2 && caught == 2 {
-            Winner::Unentschieden
+        if let Some(winner) = self.check_for_winner() {
+            winner
         } else {
             let col = d6();
 
@@ -247,6 +222,29 @@ impl Game {
         }
     }
 
+    fn check_for_winner(&self) -> Option<Winner> {
+        let free = self.free_cols.0.iter().filter(|f| f.is_some()).count();
+        let caught = self.caught_cols.0.iter().filter(|f| f.is_some()).count();
+
+        if self.fluss.len() - 1 == self.boot_pos.into() {
+            if free == caught {
+                Some(Winner::Unentschieden)
+            } else if free > caught {
+                Some(Winner::Fisch)
+            } else {
+                Some(Winner::Boot)
+            }
+        } else if free >= 3 {
+            Some(Winner::Fisch)
+        } else if caught >= 3 {
+            Some(Winner::Boot)
+        } else if free == 2 && caught == 2 {
+            Some(Winner::Unentschieden)
+        } else {
+            None
+        }
+    }
+
     fn mv(&mut self, col: Color) {
         if self.fisch_cols.has(&col) {
             self.mv_fisch(&col);
@@ -255,7 +253,6 @@ impl Game {
             let fisch = self
                 .fluss
                 .iter()
-                // .rev()
                 .find(|f| f.get_first().is_some())
                 .map(|f| f.get_first())
                 .unwrap()
@@ -271,12 +268,15 @@ impl Game {
         let start: usize = (self.boot_pos + 1).into();
 
         if start < self.fluss.len() {
-            for i in start..self.fluss.len() - 1 {
-                if self.fluss[i].has(col) {
-                    self.fluss[i].rm(col);
-                    self.fluss[i + 1].add(*col);
-                    break;
-                }
+            let index = self.fluss[start..]
+                .iter()
+                .enumerate()
+                .find(|(_, f)| f.has(col))
+                .map(|f| f.0 + start);
+
+            if let Some(i) = index {
+                self.fluss[i].rm(col);
+                self.fluss[i + 1].add(*col);
             }
         }
 
@@ -352,8 +352,8 @@ impl Display for Game {
 }
 
 fn main() {
-    // manual_game();
-    benchmark();
+    manual_game();
+    // benchmark();
 }
 
 fn benchmark() {
