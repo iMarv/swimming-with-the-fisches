@@ -253,8 +253,10 @@ impl Game {
     }
 
     fn mv(&mut self, col: Color) {
+        // If fisch is still in the game, move it
         if self.fisch_cols.has(&col) {
             self.mv_fisch(&col);
+            // If fisch is free, move another one
         } else if self.free_cols.has(&col) {
             // find endangered species
             let fisch = self
@@ -266,6 +268,8 @@ impl Game {
                 .unwrap();
 
             self.mv_fisch(&fisch.0);
+
+            // Any other case, fisch has to be caught already so move the boot
         } else {
             self.mv_boot();
         }
@@ -275,6 +279,8 @@ impl Game {
         let start: usize = (self.boot_pos + 1).into();
 
         if start < self.fluss.len() {
+            // Iterate only those parts of the fluss that are not covered
+            // by the boat
             let index = self.fluss[start..]
                 .iter()
                 .enumerate()
@@ -287,6 +293,7 @@ impl Game {
             }
         }
 
+        // If a fisch reached the ocean, send it to freedom
         if let Some(fisch) = self.fluss[12].extract_first() {
             self.fisch_cols.rm(&fisch.0);
             self.free_cols.add(fisch.0);
@@ -298,6 +305,7 @@ impl Game {
 
         let index: usize = self.boot_pos.into();
 
+        // If we caught some fisch, move them to the boot
         while let Some(fisch) = self.fluss[index].extract_first() {
             self.fisch_cols.rm(&fisch.0);
             self.caught_cols.add(fisch.0);
