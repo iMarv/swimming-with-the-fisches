@@ -15,11 +15,10 @@ Die Regeln in Kurzform (die Spielanleitung ist ansonsten unter dem Link oben zu 
 - Erreicht ein Fisch das Meer, so ist er frei, erreicht das Boot ein Feld auf dem Fische sind, so werden diese gefangen
 - Wird nun eine Farbe eines freien Fisches gewürfelt, so darf ein beliebiger anderer Fisch bewegt werden
 - Wird die Farbe eines gefangenen Fisches gewürfelt, so darf das Boot voran schreiten
-- Es wird so lange gewürfelt bis alle Fische entweder gefangen oder frei sind
-- Das Boot gewinnt, wenn es mindestens drei Fische gefangen hat, die Fische gewinnen wenn mindestens drei die Freiheit erreicht haben, ein Unentschieden wird gewertet wenn gleich viele Fische in der Freiheit sind sowie gefangen
+- Es wird so lange gewürfelt bis alle Fische entweder gefangen sind, oder frei
+- Das Boot gewinnt, wenn es mindestens drei Fische gefangen hat, die Fische gewinnen wenn mindestens drei die Freiheit erreicht haben, ein Unentschieden wird gewertet wenn gleich viele Fische in der Freiheit und gefangen sind
 
-
-Während des spielens ist dabei bereits aufgefallen, dass zumindest gefühlt das Boot ziemlich häufig gewinnt.
+Während des spielens ist bereits aufgefallen, dass das Boot gefühlt häufiger gewinnt als die Fische.
 
 # "Forschung"
 Klar, hier wird nicht wirklich geforscht, aber verfolgen wir mal einen forschungsähnlichen Ansatz. Wir haben die Hypothese: **Das Boot hat höhere Gewinnchancen als die Fische**
@@ -42,7 +41,7 @@ Die Hypothese ist somit also bestätigt, das Boot gewinnt häufiger.
 
 Dass das Boot in **fünf von zehn** Fällen gewinnt erschien uns als unfair, jeder Spieler mit dem Wissen über diesen Fakt kann Enkel, Neffen, Nichten oder eigene Kinder über den Tisch ziehen, indem sie immer auf das Boot wetten.
 
-Hierbei sei festgelegt, dass wir nur mit den vorhandenen Materialien arbeiten und das Spielfeld selbst nicht verändern, also weder Flussstücke hinzufügen, noch entfernen.
+Bei der Lösungsfindung sei festgelegt, dass wir nur mit den vorhandenen Materialien arbeiten und das Spielfeld selbst nicht verändern, also weder Flussstücke hinzufügen, noch entfernen.
 
 Der erste spontane Versuch das Spiel auszugleichen war, **zwei Fischen einen Vorsprung von einem Feld zu geben**. Die Ergebnisse einer Simulation von 100.000 Spielen führte zu entsprechendem Ergebnis:
 
@@ -50,20 +49,22 @@ Der erste spontane Versuch das Spiel auszugleichen war, **zwei Fischen einen Vor
 | ---------- | ------ | ----------- | ------ | ------------- | ------ |
 | 41222      | 41.22% | 46582       | 46.58% | 12196         | 12.20% |
 
-Eine Verbesserung ist sichtbar, Anstatt dass das Boot eine ~17% höhere Gewinnchance hat, haben die Fische nun eine ~5% höhere Gewinnchance. Diese Annäherung ist bereits sehr gut, uns interessiert jedoch ob dies noch besser geht.
+Eine Verbesserung ist sichtbar. Anstatt dass das Boot eine ~17% höhere Gewinnchance hat, haben die Fische nun eine ~5% höhere Gewinnchance. Diese Annäherung ist bereits sehr gut, uns interessiert jedoch ob dies noch besser geht.
 
-Um Lebenszeit und Nerven zu sparen wurde weiterer Code geschrieben, welcher alle möglichen Kombinationen von Fischpositionen generiert. Hierbei sei gesagt dass es bei 4 Fischen und 11 Feldern in der Theorie 11⁴ mögliche Kombinationen gibt, in der Realität es aber egal ist welcher Fisch auf einem Feld liegt. Das heißt, ob der Blaue Fisch alleine auf dem ersten Feld liegt und alle anderen auf dem zweiten, oder der Gelbe auf dem ersten Feld liegt und alle anderen auf dem Zweiten macht spieltechnisch keinen Unterschied. Entfernt man alle Duplikate ergeben sich **1001 Mögliche Positionen zum platzieren der Fische**.
+Um Lebenszeit und Nerven zu sparen wurde weiterer Code geschrieben, welcher alle möglichen Kombinationen von Fischpositionen generiert. Hierbei sei gesagt dass es bei 4 Fischen und 11 Feldern in der Theorie 11⁴ mögliche Kombinationen gibt, in der Realität es aber egal ist welcher Fisch auf einem Feld liegt. Das heißt, ob der blaue Fisch alleine auf dem ersten Feld liegt und alle anderen auf dem zweiten, oder der gelbe auf dem ersten Feld liegt und alle anderen auf dem zweiten macht spieltechnisch keinen Unterschied. Entfernt man alle Duplikate ergeben sich **1001 Mögliche Positionen zum platzieren der Fische**.
 
 Für jede dieser Positionen wurden 100.000 Spiele simuliert. Die Ergebnisse dieser Simulation sind [hier](https://gist.github.com/iMarv/e403b8d3a6b76bd823bdb8c395d1deab) zu finden.
 
 # Auswertung & Lösungsvorschlag
-Bei der Festlegung auf einen Spielaufbau sind  verschiedene Dinge zu beachten. Zum einen soll das Spiel nicht "kaputt" gemacht werden. Als Paradebeispiel gilt hier das Top 1 Ergebnis unserer [Ergebnisliste](https://gist.github.com/iMarv/e403b8d3a6b76bd823bdb8c395d1deab):
+Bei der Festlegung auf einen Spielaufbau sind  verschiedene Dinge zu beachten.
+
+Das Spiel soll nicht "kaputt" gemacht werden. Als Paradebeispiel gilt hier das Top 1 Ergebnis unserer [Ergebnisliste](https://gist.github.com/iMarv/e403b8d3a6b76bd823bdb8c395d1deab):
 
 ```
 0100001100010 | B: 40126 ( 40.13%, R: 15) | F: 39933 ( 39.93%, R: 21) | T: 19941 ( 19.94%, R: 19)
 ```
 
-Die Gewinnchance sind hier nahezu optimal ausgeglichen, jedoch wird das Regelwerk ad absurdum geführt. Wir haben einen Fisch der in den allermeisten Fällen **direkt geangelt** wird und wir haben einen Fisch die in den allermeisten Fällen **direkt ins Meer** entflieht. Der Kern des Spiels dreht sich also nur um die verbleibenden Fische. Wir wollen dieses Spiel mit vier Fischen spielen, daher ist dieser Aufbau vielleicht **stochastisch am besten** entfernt sich jedoch **zu weit vom Spielgedanken**.
+Die Gewinnchancen sind hier nahezu optimal ausgeglichen, jedoch wird das Regelwerk ad absurdum geführt. Wir haben einen Fisch der in den allermeisten Fällen **direkt geangelt** wird und wir haben einen Fisch die in den allermeisten Fällen **direkt ins Meer** entflieht. Der Kern des Spiels dreht sich also nur um die verbleibenden zwei Fische. Wir wollen dieses Spiel mit vier Fischen spielen, daher ist dieser Aufbau vielleicht **stochastisch am besten**, entfernt sich jedoch **zu weit vom Spielgedanken**.
 
 Weiterhin möchten wir das Spiel auch mit Kindern spielen. Nehmen wir hier **Platz 10** als Beispiel:
 
@@ -73,7 +74,7 @@ Weiterhin möchten wir das Spiel auch mit Kindern spielen. Nehmen wir hier **Pla
 
 Die Fische sind relativ gut verteilt, keiner rettet sich direkt, keiner wird direkt geangelt. Mit ~4% Unterschied sind die Siegchancen auch noch relativ fair verteilt.
 
-Hier greift eher ein **praktisches Problem**: Bis man den Kindern erklärt hat warum man die Fische in diesem Muster aufgebaut hat, hätte man schon die ersten 5 Runden spielen können, vorausgesetzt dass die Kinder nach der Erklärung noch Interesse an dem Spiel haben.
+Hier greift eher ein **praktisches Problem**: Bis man den Kindern erklärt hat warum man die Fische in diesem Muster aufgebaut hat, hätte man schon die ersten 5 Runden spielen können — vorausgesetzt, dass die Kinder nach der Erklärung noch Interesse an dem Spiel haben.
 
 ## Vorschläge
 Orientiert an diesen Ansätzen bieten sich folgende Kombinationen an um das Spiel ausgeglichener zu gestalten:
@@ -96,17 +97,17 @@ Platz 36, 7% Unterschied und auch ein schickes Muster welches nicht groß erklä
 # Schlusswort
 Ein sehr interessantes Dienstagabendprojekt. Es war sehr überraschend wie stark sich kleine Änderungen im Spielfeldaufbau auf das Gesamtergebnis ausgewirkt haben.
 
-Zusätzlich ist es auch interessant zu beobachten wie sich die durchschnittliche Rundenzahl entwickelt welche benötigt wird um entsprechende Spielenden zu erreichen (diese wurde in der Zusammenfassung nicht erwähnt, ich empfehle aber mal einen Blick in die Daten, Dort sind auch spannende Sprünge zu beobachten).
+Zusätzlich ist es auch interessant zu beobachten wie sich die durchschnittliche Rundenzahl entwickelt, welche benötigt wird um entsprechende Spielenden zu erreichen (diese wurde in der Zusammenfassung nicht erwähnt, ich empfehle aber mal einen Blick in die Daten, Dort sind auch spannende Sprünge zu beobachten).
 
 # Bonus
 ## Uninteressantes
-- Der in den Regeln empfohlene Aufbau befindet sich in der Sortierten und gefilterten Liste auf Platz 70
-- 100.000 simulationen sind bewusst gewählt, bei 10.000 hatten wir noch zu viele Abweichungen zwischen den Ergebnissen
+- Der in den Regeln empfohlene Aufbau befindet sich in der sortierten und gefilterten Liste auf Platz 70
+- 100.000 Simulationen sind bewusst gewählt, bei 10.000 hatten wir noch zu viele Abweichungen zwischen den Ergebnissen
 - Prozentwerte anzuzeigen wenn die Anzahl der Simulationen ein vielfaches von 10 ist, macht wenig Spaß, hilft aber trotzdem
 - Dass der Quellcode ein wilder Mix aus deutsch und englisch ist, ist als Gag zu verstehen
 - Das ganze Projekt ist vermutlich völlig overengineered
 ## Unethisches
-Eher unauffällige Gewinnverteilungen, zumindest so unauffällig dass die Kinder das nicht hinterfragen. Entsprechend der Wettvorlieben der Kinder wählen:
+Eher unauffällige Fischverteilungen, zumindest so unauffällig dass die Kinder das nicht hinterfragen. Einfach entsprechend der Wettvorlieben der Kinder einen Aufbau wählen wählen:
 
 **Pro Boot**:
 ```
